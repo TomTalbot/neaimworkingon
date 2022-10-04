@@ -30,11 +30,6 @@ BG_width = BG_img.get_width()
 tile_width = math.ceil(SCREENWIDTH / BG_width)
 
 
-
-
-
-
-
 class Player:
     def __init__(self, x, y):
         pimg = pygame.image.load(os.path.join('Assets', 'player.png'))
@@ -97,6 +92,7 @@ def game():
     pygame.quit()
 
 # menu shit
+
 def settings():
     menu = pygame_menu.Menu('Settings', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
     menu.add.button('Audio', audio)
@@ -106,13 +102,13 @@ def settings():
 
 def audio():
     menu = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('test')
+    menu.add.button('test for audio settings')
     menu.add.button('back', settings)
     menu.mainloop(WIN)
 
 def video():
     menu = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('test', game)
+    menu.add.button('test for video settings')
     menu.add.button('back', settings)
     menu.mainloop(WIN)
 
