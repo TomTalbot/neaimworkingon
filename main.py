@@ -1,11 +1,12 @@
 import pygame
-from pygame.locals import *
 import os
 import math
+import pygame_menu
 import noise
-from mainmenu import *
+
 
 pygame.init()
+pygame.display.init()
 
 clock = pygame.time.Clock()
 FPS = 60
@@ -30,67 +31,97 @@ tile_width = math.ceil(SCREENWIDTH / BG_width)
 
 
 
-class player():
-    def __init__(self, x,y):
-        pimg = pygame.image.load(os.path.join('Assets', 'player.jpg'))
-        self.image = pygame.transform.scale(pimg, (80,80))
+
+
+
+
+class Player:
+    def __init__(self, x, y):
+        pimg = pygame.image.load(os.path.join('Assets', 'player.png'))
+        self.image = pygame.transform.scale(pimg, (80, 80))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.grav = 0
 
-
-
     def movement(self):
 
-        dx = 0 # when key is pressed, shows the change (delta)
+        dx = 0  # when key is pressed, shows the change (delta)
         dy = 0
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
-            self.grav = -15 # neg value increase y coord
+            self.grav = -15  # neg value increase y coord
         if keys[pygame.K_a]:
             dx -= 5
-        if keys [pygame.K_d]:
+        if keys[pygame.K_d]:
             dx += 5
 
-
         self.grav += 1
-        if self.grav > 10: # if y >10 then it gets capped and player starts falling
+
+        if self.grav > 10:  # if y >10 then it gets capped and player starts falling
 
             self.grav = 10
 
         dy += self.grav
 
-
-        #updating coords
+        # updating coords
         self.rect.x += dx
         self.rect.y += dy
 
-
-        WIN.blit(self.image,self.rect)
-
-
-player = player(100,300)
+        WIN.blit(self.image, self.rect)
 
 
-run = True
-while run:
-
-    clock.tick(FPS)
-
-    # blit imgs
-    for i in range(0, tile_width):
-        WIN.blit(BG_img, (i * BG_width, 0))
-
-    player.movement()
-
-    for events in pygame.event.get():
-        if events.type == pygame.QUIT:
-            run = False
-
-    pygame.display.update()
+player = Player(100, 300)
 
 
-pygame.quit()
+def game():
 
+    run = True
+    while run:
+
+        clock.tick(FPS)
+
+        # blit imgs
+        for i in range(0, tile_width):
+            WIN.blit(BG_img, (i * BG_width, 0))
+
+        player.movement()
+
+        for events in pygame.event.get():
+            if events.type == pygame.QUIT:
+                run = False
+
+        pygame.display.update()
+
+    pygame.quit()
+
+# menu shit
+def settings():
+    menu = pygame_menu.Menu('Settings', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    menu.add.button('Audio', audio)
+    menu.add.button('Video', video)
+    menu.add.button('Back', mainMenu)
+    menu.mainloop(WIN)
+
+def audio():
+    menu = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    menu.add.button('test')
+    menu.add.button('back', settings)
+    menu.mainloop(WIN)
+
+def video():
+    menu = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    menu.add.button('test', game)
+    menu.add.button('back', settings)
+    menu.mainloop(WIN)
+
+def mainMenu():
+    menu = pygame_menu.Menu('Welcome', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    menu.add.button('Play', game)
+    menu.add.button('Settings', settings)
+    menu.add.button('Quit', pygame_menu.events.EXIT)
+    menu.mainloop(WIN)
+
+if __name__ == '__main__':
+    mainMenu()
