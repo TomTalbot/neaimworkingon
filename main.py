@@ -102,15 +102,18 @@ def settings():
 
 def audio():
     menu = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('test for audio settings')
     menu.add.button('back', settings)
     menu.mainloop(WIN)
 
 def video():
+
     menu = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('test for video settings')
+    menu.add.selector('Screen Dimmensions : ', [('1920x1080', 1), ('1280x1024', 2), ('800x600', 3)],onchange=set_resolution)
     menu.add.button('back', settings)
     menu.mainloop(WIN)
+
+def set_resolution(value, resolution):
+    pass
 
 def mainMenu():
     menu = pygame_menu.Menu('Welcome', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
@@ -121,3 +124,11 @@ def mainMenu():
 
 if __name__ == '__main__':
     mainMenu()
+
+'''
+ideas for settings:
+JSON file to save settings
+allow user to change theme for menu in video settings
+allow user to change window size from presets <- working on now 
+allow user to change audio settings
+'''
