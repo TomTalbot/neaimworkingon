@@ -8,11 +8,15 @@ import noise
 pygame.init()
 pygame.display.init()
 
+global TEMPRES
+
+
 clock = pygame.time.Clock()
 FPS = 60
 
-SCREENWIDTH = 1000
-SCREENHEIGHT = 406
+SCREENWIDTH, SCREENHEIGHT = 1000, 406
+
+
 
 
 WIN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
@@ -94,26 +98,51 @@ def game():
 # menu shit
 
 def settings():
-    menu = pygame_menu.Menu('Settings', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('Audio', audio)
-    menu.add.button('Video', video)
-    menu.add.button('Back', mainMenu)
-    menu.mainloop(WIN)
+    settings = pygame_menu.Menu('Settings', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    settings.add.button('Audio', audio)
+    settings.add.button('Video', video)
+    settings.add.button('Back', mainMenu)
+    settings.mainloop(WIN)
 
 def audio():
-    menu = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('back', settings)
-    menu.mainloop(WIN)
+    audio = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    audio.add.button('back', settings)
+    audio.mainloop(WIN)
 
 def video():
 
-    menu = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.selector('Screen Dimmensions : ', [('1920x1080', 1), ('1280x1024', 2), ('800x600', 3)],onchange=set_resolution)
-    menu.add.button('back', settings)
-    menu.mainloop(WIN)
+    video = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
 
-def set_resolution(value, resolution):
+    # all example resolutions
+
+    video.add.selector('Screen Dimensions : ', [('1920x1080', 1), ('1280x1024', 2), ('800x600', 3)], onchange=temp_resolution, selector_id = 'set_resolution')
+    video.add.button('apply', temp_resolution)
+    video.add.button('back', settings)
+    video.mainloop(WIN)
+
+def temp_resolution(value: tuple[any, any], resolution: str) -> None:
+    selected, index = value
+    print(selected,index)
+    if index == 0:
+        TEMPRES = 1920,1080
+    elif index == 1:
+        TEMPRES = 1280,1024
+    else:
+        TEMPRES = 800,600
+
+    pygame.display.set_mode(TEMPRES)
+    pygame.display.update()
+    print(TEMPRES)
+
+
+
+
+#
+
+def resolution():
     pass
+
+
 
 def mainMenu():
     menu = pygame_menu.Menu('Welcome', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
