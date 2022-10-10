@@ -8,11 +8,13 @@ import noise
 pygame.init()
 pygame.display.init()
 
+global TEMPRES
+
+
 clock = pygame.time.Clock()
 FPS = 60
 
-SCREENWIDTH = 1000
-SCREENHEIGHT = 406
+SCREENWIDTH, SCREENHEIGHT = 1000, 406
 
 
 WIN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
@@ -22,12 +24,16 @@ pygame.display.set_caption('platformer')
 # draw stuff
 BG_img = pygame.image.load(os.path.join('Assets', 'BG.png'))
 BG_width = BG_img.get_width()
+BG_height = BG_img.get_height()
 
+dirt_image = pygame.image.load(os.path.join('Assets', 'dirt.png'))
+grass_image = pygame.image.load(os.path.join('Assets', 'grass.png'))
+TILE_SIZE = grass_image.get_width()
 
-# def game variables
 
 # math.ceil rounds number up, tile width calculates the number of tiles needed to be blitted to fill screen
 tile_width = math.ceil(SCREENWIDTH / BG_width)
+tile_height = math.ceil(SCREENHEIGHT / BG_height)
 
 
 class Player:
@@ -80,6 +86,8 @@ def game():
         # blit imgs
         for i in range(0, tile_width):
             WIN.blit(BG_img, (i * BG_width, 0))
+        for i in range(0, tile_height):
+            WIN.blit(BG_img, (i * BG_height, 0))
 
         player.movement()
 
@@ -93,26 +101,67 @@ def game():
 
 # menu shit
 
+
 def settings():
-    menu = pygame_menu.Menu('Settings', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('Audio', audio)
-    menu.add.button('Video', video)
-    menu.add.button('Back', mainMenu)
-    menu.mainloop(WIN)
+
+    settings = pygame_menu.Menu('Settings', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    settings.add.button('Audio', audio)
+    settings.add.button('Video', video)
+    settings.add.button('Back', mainMenu)
+    settings.mainloop(WIN)
+
 
 def audio():
-    menu = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('test for audio settings')
-    menu.add.button('back', settings)
-    menu.mainloop(WIN)
+
+    audio = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    audio.add.button('Back', settings)
+    audio.mainloop(WIN)
+
 
 def video():
-    menu = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    menu.add.button('test for video settings')
-    menu.add.button('back', settings)
-    menu.mainloop(WIN)
+
+    video = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+
+    # all example resolutions
+
+    video.add.selector('Screen Dimensions : ', [('1366x768', 1), ('1280x1024', 2), ('800x600', 3)],
+                       onchange=temp_resolution, selector_id='set_resolution')
+
+    video.add.button('Apply', resolution)
+    video.add.button('Back', settings)
+    video.mainloop(WIN)
+
+# window wont resize if the res chosen first is in the list without scrolling breaks code for some reason?
+def temp_resolution(value: tuple[any, any], resolution: str) -> None:
+    global TEMPRES
+
+    selected, index = value
+    print(value)
+
+    if index == 0:
+        TEMPRES = 1366,768
+        # menu.Menu.resize(height=1080,width=1920)
+    elif index == 1:
+        TEMPRES = 1280,1024
+        # pygame_menu.menu.Menu.resize(height=1024, width=1280)
+    else:
+        TEMPRES = 800,600
+        # pygame_menu.menu.Menu.resize(height=600, width=800)
+
+
+
+
+def resolution():
+    pygame.display.set_mode(TEMPRES)
+    pygame.display.update()
+    print(TEMPRES)
+
+
+
+
 
 def mainMenu():
+    global menu
     menu = pygame_menu.Menu('Welcome', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
     menu.add.button('Play', game)
     menu.add.button('Settings', settings)
@@ -120,4 +169,12 @@ def mainMenu():
     menu.mainloop(WIN)
 
 if __name__ == '__main__':
-    mainMenu()
+   mainMenu()
+
+'''
+ideas for settings:
+JSON file to save settings
+allow user to change theme for menu in video settings
+allow user to change window size from presets <- working on now 
+allow user to change audio settings
+'''
