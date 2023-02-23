@@ -1,9 +1,11 @@
 import pygame
+
 import os
 import math
-import pygame_button
 import pygame_menu
 # import noise  # used for terrain generation
+import pytmx
+from pytmx.util_pygame import load_pygame
 
 pygame.init()
 pygame.display.init()
@@ -26,9 +28,13 @@ ORANGE = (255, 180, 0)
 WIN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
 pygame.display.set_caption('platformer')
 
+
+tmx_data = load_pygame('map.tmx')
+
+
 # Audio loading
-BG_Menu = pygame.mixer.Sound(os.path.join('Assets', 'Whatisthatmelody.mp3'))
-BG_Menu.set_volume(1)
+# BG_Menu = pygame.mixer.Sound(os.path.join('Assets', 'Whatisthatmelody.mp3'))
+# BG_Menu.set_volume(1)
 
 # draw stuff
 BG_img = pygame.image.load(os.path.join('Assets', 'BG.png'))
@@ -47,18 +53,98 @@ tile_height = math.ceil(SCREENHEIGHT / BG_height)
 class Player:
     def __init__(self, x, y, name):
         keys = pygame.key.get_pressed()
-        pimg = pygame.image.load(os.path.join('Assets', 'Idle1.png'))
-        self.image = pygame.transform.scale(pimg, (80, 80))
+        pimg = pygame.image.load(os.path.join('Assets', 'Player', 'Idle', '0.png'))
+        self.image = pygame.transform.scale(pimg, (350, 350))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.name = name
         self.rect.y = y
+        self.dx = x
+        self.dy = y
         self.animation_list = []
         self.frame_index = 0
         self.action = 0
         self.grav = 0
         self.update_time = pygame.time.get_ticks()
 
+        temp_list = []
+        for i in range(8):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Idle/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+        # loading  attack images
+        temp_list = []
+        for i in range(6):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Attack1/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+        # hurt images
+        temp_list = []
+        for i in range(4):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Hurt/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+        temp_list = []
+        for i in range(6):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Death/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+        # adds temp list to master list, creates list of lists, all animations passed through temp list will be added to
+        # the master list
+        self.image = self.animation_list[self.action][self.frame_index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x,y)
+
+    def update(self):
+        animation_cooldown = 100  # milliseconds
+        # handles animation
+        # updates image
+        self.image = self.animation_list[self.action][self.frame_index]
+        # if the current time and update time are greater than 100ms then change to the next image in animation
+        if pygame.time.get_ticks() - self.update_time > animation_cooldown:
+            self.update_time = pygame.time.get_ticks()
+            self.frame_index += 1
+
+        # if animation is done, loop to first image
+        if self.frame_index >= len(self.animation_list[self.action]):
+            if self.action == 3:
+                self.frame_index = len(self.animation_list[self.action]) - 1
+            else:
+                self.Idle()
+
+    def Idle(self):
+
+        self.action = 0
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
+
+    def Hurt(self):
+        # hurt animation
+        self.action = 2
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
+
+        def Death(self):
+            # hurt animation
+            self.action = 3
+            self.frame_index = 0
+            self.update_time = pygame.time.get_ticks()
+
+    def Reset(self):
+        self.alive = True
+        self.action = 0
+        self.update_time = pygame.time.get_ticks()
+
+    def Draw(self):
+        WIN.blit(self.image, self.rect)
 
     def movement(self):
 
@@ -67,15 +153,17 @@ class Player:
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w] or keys[pygame.K_SPACE]:
-            self.grav = -15 # neg value increase y coord
+            self.grav = -15  # neg value increase y coord
         if keys[pygame.K_a]:
             dx -= 5
+            pygame.transform.flip(WIN, dx, dy)
         if keys[pygame.K_d]:
             dx += 5
 
         self.grav += 1
 
         # once the gravity reaches 10, the players doesn't fall at any quicker of a speed
+
         if self.grav > 10:
             self.grav = 10
 
@@ -85,88 +173,14 @@ class Player:
         self.rect.x += dx
         self.rect.y += dy
 
+
         WIN.blit(self.image, self.rect)
+        print(dx,dy)
 
-
-
-'''
 
         #loading idle images
-        temp_list = []
-        for i in range(8):  #iterates through 8 png for animation
-            img = pygame.image.load(f'img/{self.name}/Idle/{i}.png')
-            img = pygame.transform.scale(img, (img.get_width() * 3, img.get_height() * 3))
-            temp_list.append(img) #adds image to image list
-        self.animation_list.append(temp_list)
 
-        # loading  attack images
-        temp_list = []
-        for i in range(8):  # iterates through 8 png for animation
-            img = pygame.image.load(f'img/{self.name}/Attack/{i}.png')
-            img = pygame.transform.scale(img, (img.get_width() * 3, img.get_height() * 3))
-            temp_list.append(img)  # adds image to image list
-        self.animation_list.append(temp_list)
-
-        #hurt images
-        temp_list = []
-        for i in range(3):  # iterates through 8 png for animation
-            img = pygame.image.load(f'img/{self.name}/Hurt/{i}.png')
-            img = pygame.transform.scale(img, (img.get_width() * 3, img.get_height() * 3))
-            temp_list.append(img)  # adds image to image list
-        self.animation_list.append(temp_list)
-
-        temp_list = []
-        for i in range(10):  # iterates through 8 png for animation
-            img = pygame.image.load(f'img/{self.name}/Death/{i}.png')
-            img = pygame.transform.scale(img, (img.get_width() * 3, img.get_height() * 3))
-            temp_list.append(img)  # adds image to image list
-        self.animation_list.append(temp_list)
-
-        #adds temp list to master list, creates list of lists, all animations passed through temp list will be added to the master list
-        self.image = self.animation_list[self.action][self.frame_index]
-        self.rect = self.image.get_rect()
-        self.rect.center = (dx,dy)
-
-    def update(self):
-        animation_cooldown = 100 #milliseconds
-        #handles animation
-        #updates image
-        self.image = self.animation_list[self.action][self.frame_index]
-        # if the current time and update time are greater than 100ms then change to the next image in animation
-        if pygame.time.get_ticks() - self.update_time > animation_cooldown:
-            self.update_time = pygame.time.get_ticks()
-            self.frame_index += 1
-
-        #if animation is done, loop to first image
-        if self.frame_index >= len(self.animation_list[self.action]):
-            if self.action == 3:
-                self.frame_index = len(self.animation_list[self.action]) - 1
-            else:
-               self.Idle()
-
-
-    def Idle(self):
-
-        self.action = 0
-        self.frame_index = 0
-        self.update_time = pygame.time.get_ticks()
-
-
-def Hurt(self):
-    # hurt animation
-    self.action = 2
-    self.frame_index = 0
-    self.update_time = pygame.time.get_ticks()
-
-
-def Death(self):
-    # hurt animation
-    self.action = 3
-    self.frame_index = 0
-    self.update_time = pygame.time.get_ticks()
-'''
-
-player = Player(100, 300, 'Player')
+player = Player(100, 190, 'Player')
 
 
 def game():
@@ -174,7 +188,8 @@ def game():
     while run:
         # BG_Menu.play()
         clock.tick(FPS)
-
+        player.update()
+        player.Draw()
         # blit imgs
         for i in range(0, tile_width):
             WIN.blit(BG_img, (i * BG_width, 0))
@@ -224,8 +239,10 @@ def audio():
     audio.add.button('Back', settings)
     audio.mainloop(WIN)
 
+
 def set_volume():
     print("JOD")
+
 
 def video():
     video = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
@@ -245,7 +262,7 @@ def temp_resolution(value: tuple[any]) -> None:
 
     global TEMPRES
 
-    selected, index = value
+    index = value
     print(value)
 
     if index == 0:
@@ -299,3 +316,5 @@ to have game end, kill enemy and then slow game time and fade out
 have to have a way to store data of players game, score ect
 
 '''
+if __name__ == 'main':
+    mainmenu()
