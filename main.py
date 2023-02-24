@@ -1,11 +1,14 @@
 import pygame
-
 import os
 import math
 import pygame_menu
 # import noise  # used for terrain generation
 import pytmx
 from pytmx.util_pygame import load_pygame
+
+
+# TO DO LIST = NEED TO HAVE MENU RESOLUTIONS WORKING, NEED TO HAVE TERRAIN WORKING.
+
 
 pygame.init()
 pygame.display.init()
@@ -24,6 +27,11 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 ORANGE = (255, 180, 0)
+
+
+TILE_SIZE = 16
+
+
 
 WIN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
 pygame.display.set_caption('platformer')
@@ -52,7 +60,6 @@ tile_height = math.ceil(SCREENHEIGHT / BG_height)
 
 class Player:
     def __init__(self, x, y, name):
-        keys = pygame.key.get_pressed()
         pimg = pygame.image.load(os.path.join('Assets', 'Player', 'Idle', '0.png'))
         self.image = pygame.transform.scale(pimg, (350, 350))
         self.rect = self.image.get_rect()
@@ -156,7 +163,6 @@ class Player:
             self.grav = -15  # neg value increase y coord
         if keys[pygame.K_a]:
             dx -= 5
-            pygame.transform.flip(WIN, dx, dy)
         if keys[pygame.K_d]:
             dx += 5
 
@@ -180,7 +186,7 @@ class Player:
 
         #loading idle images
 
-player = Player(100, 190, 'Player')
+player = Player(100, 100, 'Player')
 
 
 def game():
@@ -233,15 +239,17 @@ def settings():
 
 
 def audio():
+    global volRange
     audio = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-    audio.add.range_slider("Volume", 0, (0, 100), 10, set_volume())
-    audio.add.button('Apply', set_volume())
+    volRange = audio.add.range_slider("Volume", 0, (0, 100), 10, set_volume)
+    audio.add.button('Apply', set_volume)
     audio.add.button('Back', settings)
     audio.mainloop(WIN)
 
 
 def set_volume():
-    print("JOD")
+    a = volRange.get_value()
+    print(a)
 
 
 def video():
@@ -293,17 +301,14 @@ def mainmenu():
 if __name__ == '__main__':
     mainmenu()
 
-'''
-main premise for sprite animation: load images at once, add to temp list, add to list of lists in for loop, 100ms delay
-then remove from list.
-'''
+
 
 '''
 ideas for settings:
 JSON file to save settings
 allow user to change theme for menu in video settings
-allow user to change window size from presets <- working on now
-allow user to change audio settings
+allow user to change window size from presets <- potentially scrapped?
+allow user to change audio settings <- need to have the main 
 
 for enemy generation -> grab all x and y pos of all tiles in terrain append them to a list then have enemy spawn if the
 random coords assigned are not in the list.
