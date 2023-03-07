@@ -1,10 +1,10 @@
+
+
 import pygame
 import os
 import math
 import pygame_menu
-# import noise  # used for terrain generation
-import pytmx
-from pytmx.util_pygame import load_pygame
+import noise
 
 
 # TO DO LIST = NEED TO HAVE MENU RESOLUTIONS WORKING, NEED TO HAVE TERRAIN WORKING.
@@ -34,10 +34,9 @@ TILE_SIZE = 16
 
 
 WIN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
-pygame.display.set_caption('platformer')
+pygame.display.set_caption('Óendanlegt')
 
 
-tmx_data = load_pygame('map.tmx')
 
 
 # Audio loading
@@ -51,7 +50,6 @@ BG_height = BG_img.get_height()
 
 dirt_image = pygame.image.load(os.path.join('Assets', 'dirt.png'))
 grass_image = pygame.image.load(os.path.join('Assets', 'grass.png'))
-TILE_SIZE = grass_image.get_width()
 
 # math.ceil rounds number up, tile width calculates the number of tiles needed to be blitted to fill screen
 tile_width = math.ceil(SCREENWIDTH / BG_width)
@@ -181,12 +179,59 @@ class Player:
 
 
         WIN.blit(self.image, self.rect)
-        print(dx,dy)
 
 
-        #loading idle images
+class Terrain:
+    def __init__(self):
+        # Initialize terrain data
+        self.terrain_data = []
+
+        # Generate terrain data
+        self.generate_terrain_data()
+
+    def generate_terrain_data(self):
+        # Generate terrain data using Perlin noise
+        for x in range(SCREENWIDTH // TILE_SIZE):
+            # Determine height of terrain using Perlin noise
+            terrain_height = int((1 + noise.pnoise1(x / 30, repeat=9999)) * 3) + 3
+
+            # Generate column of terrain data
+            column = []
+            for y in range(terrain_height):
+                if y == terrain_height - 1:
+                    # Use grass for top layer
+                    tile_image = grass_image
+                else:
+                    # Use dirt for other layers
+                    tile_image = dirt_image
+
+                column.append({'image': tile_image, 'rect': pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)})
+
+            self.terrain_data.append(column)
+
+    def draw(self, surface):
+        # Draw terrain tiles to the screen
+        for column in self.terrain_data:
+            for tile in column:
+                surface.blit(tile['image'], tile['rect'])
+
+    def get_tile_at_position(self, x, y):
+        # Get the terrain tile at a given position
+        column_index = x // TILE_SIZE
+        row_index = y // TILE_SIZE
+
+        if column_index < 0 or column_index >= len(self.terrain_data):
+            return None
+
+        if row_index < 0 or row_index >= len(self.terrain_data[column_index]):
+            return None
+
+        return self.terrain_data[column_index][row_index]['rect']
+
 
 player = Player(100, 100, 'Player')
+terrain = Terrain()
+
 
 
 def game():
@@ -194,8 +239,10 @@ def game():
     while run:
         # BG_Menu.play()
         clock.tick(FPS)
+
         player.update()
         player.Draw()
+
         # blit imgs
         for i in range(0, tile_width):
             WIN.blit(BG_img, (i * BG_width, 0))
@@ -204,14 +251,17 @@ def game():
 
         player.movement()
 
-        for events in pygame.event.get():
+        terrain.draw(WIN)
 
+        for events in pygame.event.get():
             if events.type == pygame.QUIT:
                 run = False
 
         pygame.display.update()
 
+
     pygame.quit()
+
 
 
 # menu shit
@@ -225,6 +275,7 @@ BUTTON_STYLE = {
     "hover_font_color": ORANGE,
 }
 '''
+
 
 
 # menu shit
@@ -256,38 +307,21 @@ def video():
     video = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
 
     # all example resolutions
+    def set_resolution(value, resolution):
+        global screen_width, screen_height
+        screen_width, screen_height = resolution
+        pygame.display.set_mode((screen_width, screen_height))
 
-    video.add.selector('Screen Dimensions : ', [('1366x768', 1), ('1280x1024', 2), ('800x600', 3)],
-                       onchange=temp_resolution, selector_id='set_resolution')
-    video.add.button('Apply', resolution)
+
+
+    resolutions = [('800 x 600', (800, 600)), ('1024 x 768', (1024, 768)), ('1280 x 720', (1280, 720)), ('1920 x 1080', (1920, 1080))]
+    resolution_selector = video.add.selector('Resolution: ', resolutions, onchange=set_resolution)
     video.add.button('Back', settings)
     video.mainloop(WIN)
 
 
+
 # window won't resize if the res chosen first is in the list without scrolling breaks code for some reason?
-
-def temp_resolution(value: tuple[any]) -> None:
-
-    global TEMPRES
-
-    index = value
-    print(value)
-
-    if index == 0:
-        TEMPRES = 1366, 768
-        # menu.Menu.resize(height=1080,width=1920)
-    elif index == 1:
-        TEMPRES = 1280, 1024
-        # pygame_menu.menu.Menu.resize(height=1024, width=1280)
-    else:
-        TEMPRES = 800, 600
-        # pygame_menu.menu.Menu.resize(height=600, width=800)
-
-
-def resolution():
-    pygame.display.set_mode(TEMPRES)
-    pygame.display.update()
-    print(TEMPRES)
 
 
 def mainmenu():
