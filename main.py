@@ -1,5 +1,3 @@
-
-
 import pygame
 import os
 import math
@@ -13,8 +11,6 @@ import noise
 pygame.init()
 pygame.display.init()
 pygame.mixer.init()
-
-global TEMPRES
 
 clock = pygame.time.Clock()
 FPS = 60
@@ -40,8 +36,8 @@ pygame.display.set_caption('Óendanlegt')
 
 
 # Audio loading
-# BG_Menu = pygame.mixer.Sound(os.path.join('Assets', 'Whatisthatmelody.mp3'))
-# BG_Menu.set_volume(1)
+BG_Menu = pygame.mixer.Sound(os.path.join('Assets', 'Pyre Original Soundtrack - Downside Ballad.mp3'))
+BG_Menu.set_volume(1)
 
 # draw stuff
 BG_img = pygame.image.load(os.path.join('Assets', 'BG.png'))
@@ -63,6 +59,7 @@ class Player:
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.name = name
+        self.angle = 0
         self.rect.y = y
         self.dx = x
         self.dy = y
@@ -78,6 +75,14 @@ class Player:
             img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
             temp_list.append(img)  # adds image to image list
         self.animation_list.append(temp_list)
+
+        temp_list = []
+        for i in range(2):
+            img = pygame.image.load(f'Assets/{self.name}/Jump/{i}.png')
+            img = pygame.transform.scale (img,(img.get_width(),img.get_height()))
+            temp_list.append(img)
+        self.animation_list.append(temp_list)
+
 
         # loading  attack images
         temp_list = []
@@ -131,17 +136,23 @@ class Player:
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
 
+    def Jump(self):
+
+        self.action = 1
+        self.frame_index = 0 
+        self.update_time = pygame.time.get_ticks()
+
     def Hurt(self):
         # hurt animation
         self.action = 2
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
 
-        def Death(self):
-            # hurt animation
-            self.action = 3
-            self.frame_index = 0
-            self.update_time = pygame.time.get_ticks()
+    def Death(self):
+        # hurt animation
+        self.action = 3
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
 
     def Reset(self):
         self.alive = True
@@ -151,6 +162,31 @@ class Player:
     def Draw(self):
         WIN.blit(self.image, self.rect)
 
+    def camera(player_pos):
+    
+     # Get the width and height of the game window
+        width = pygame.display.get_surface().get_width()
+        win_height = pygame.display.get_surface().get_height()
+
+        # Calculate the center of the game window
+        center_x = win_width // 2
+        center_y = win_height // 2
+
+        # Get the position of the player
+        player_x, player_y = player_pos
+
+        # Calculate the offset needed to center the player
+        offset_x = center_x - player_x
+        offset_y = center_y - player_y
+
+        # Move the game window by the offset
+        WIN_OFFSET[0] = offset_x
+        WIN_OFFSET[1] = offset_y
+
+        camera((self.rect.x, self.rect.y))
+
+        
+
     def movement(self):
 
         dx = 0  # when key is pressed, shows the change (delta)
@@ -158,6 +194,7 @@ class Player:
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w] or keys[pygame.K_SPACE]:
+            self.Jump()
             self.grav = -15  # neg value increase y coord
         if keys[pygame.K_a]:
             dx -= 5
@@ -178,8 +215,10 @@ class Player:
         self.rect.y += dy
 
 
-        WIN.blit(self.image, self.rect)
 
+        rotated_image = pygame.transform.rotate(self.image, self.angle)
+        rotated_rect = rotated_image.get_rect(center=self.rect.center)
+        WIN.blit(rotated_image, rotated_rect)
 
 class Terrain:
     def __init__(self):
@@ -191,21 +230,24 @@ class Terrain:
 
     def generate_terrain_data(self):
         # Generate terrain data using Perlin noise
-        for x in range(SCREENWIDTH // TILE_SIZE):
+        for x in range(SCREENWIDTH // TILE_SIZE - 1, -1, -1):
             # Determine height of terrain using Perlin noise
             terrain_height = int((1 + noise.pnoise1(x / 30, repeat=9999)) * 3) + 3
 
             # Generate column of terrain data
             column = []
             for y in range(terrain_height):
-                if y == terrain_height - 1:
+                if y == 0:
                     # Use grass for top layer
                     tile_image = grass_image
                 else:
                     # Use dirt for other layers
                     tile_image = dirt_image
 
-                column.append({'image': tile_image, 'rect': pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)})
+                tile_rect = pygame.Rect(x * TILE_SIZE,
+                                        (SCREENHEIGHT - (terrain_height * TILE_SIZE)) + (y * TILE_SIZE),
+                                        TILE_SIZE, TILE_SIZE)
+                column.append({'image': tile_image, 'rect': tile_rect})
 
             self.terrain_data.append(column)
 
@@ -218,7 +260,7 @@ class Terrain:
     def get_tile_at_position(self, x, y):
         # Get the terrain tile at a given position
         column_index = x // TILE_SIZE
-        row_index = y // TILE_SIZE
+        row_index = (y - (SCREENHEIGHT - (len(self.terrain_data[column_index]) * TILE_SIZE))) // TILE_SIZE
 
         if column_index < 0 or column_index >= len(self.terrain_data):
             return None
@@ -229,7 +271,7 @@ class Terrain:
         return self.terrain_data[column_index][row_index]['rect']
 
 
-player = Player(100, 100, 'Player')
+player = Player(200, 150, 'Player')
 terrain = Terrain()
 
 
@@ -242,6 +284,7 @@ def game():
 
         player.update()
         player.Draw()
+        camera(player.get_position())
 
         # blit imgs
         for i in range(0, tile_width):
@@ -267,14 +310,7 @@ def game():
 # menu shit
 
 
-'''
-BUTTON_STYLE = {
-    "hover_color": BLUE,
-    "clicked_color": GREEN,
-    "clicked_font_color": BLACK,
-    "hover_font_color": ORANGE,
-}
-'''
+
 
 
 
@@ -284,40 +320,22 @@ BUTTON_STYLE = {
 def settings():
     settings = pygame_menu.Menu('Settings', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
     settings.add.button('Audio', audio)
-    settings.add.button('Video', video)
     settings.add.button('Back', mainmenu)
     settings.mainloop(WIN)
 
 
 def audio():
-    global volRange
     audio = pygame_menu.Menu('Audio', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
     volRange = audio.add.range_slider("Volume", 0, (0, 100), 10, set_volume)
-    audio.add.button('Apply', set_volume)
+    audio.add.button('Apply', lambda: set_volume(volRange.get_value()))
     audio.add.button('Back', settings)
     audio.mainloop(WIN)
 
 
-def set_volume():
-    a = volRange.get_value()
-    print(a)
+def set_volume(value):
+    BG_Menu.set_volume(value//100)
+    
 
-
-def video():
-    video = pygame_menu.Menu('Video', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
-
-    # all example resolutions
-    def set_resolution(value, resolution):
-        global screen_width, screen_height
-        screen_width, screen_height = resolution
-        pygame.display.set_mode((screen_width, screen_height))
-
-
-
-    resolutions = [('800 x 600', (800, 600)), ('1024 x 768', (1024, 768)), ('1280 x 720', (1280, 720)), ('1920 x 1080', (1920, 1080))]
-    resolution_selector = video.add.selector('Resolution: ', resolutions, onchange=set_resolution)
-    video.add.button('Back', settings)
-    video.mainloop(WIN)
 
 
 
@@ -325,6 +343,7 @@ def video():
 
 
 def mainmenu():
+    BG_Menu.play()
     menu = pygame_menu.Menu('Welcome', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
     menu.add.button('Play', game)
     menu.add.button('Settings', settings)
@@ -355,5 +374,3 @@ to have game end, kill enemy and then slow game time and fade out
 have to have a way to store data of players game, score ect
 
 '''
-if __name__ == 'main':
-    mainmenu()
