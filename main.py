@@ -235,61 +235,212 @@ class Player:
         WIN.blit(rotated_image, rotated_rect)
     
 
-class Terrain:
-    def __init__(self):
-        # Initialize terrain data
-        self.terrain_data = []
-
-        # Generate terrain data
-        self.generate_terrain_data()
-
-    def generate_terrain_data(self):
-           # Generate terrain data using Perlin noise
-        for x in range(SCREENWIDTH // TILE_SIZE - 1, -1, -1):
-            # Determine height of terrain using Perlin noise
-            terrain_height = 5
-
-            # Generate column of terrain data
-            column = []
-            for y in range(terrain_height):
-                if y == 0:
-                    # Use grass for top layer
-                    tile_image = grass_image
+def generate_terrain(width, height, octaves=3, persistence=0.5, lacunarity=2.0, tile_size=16):
+    """ Generate a random terrain using Perlin noise algorithm """
+    terrain = []
+    for i in range(width // tile_size):
+        column = []
+        for j in range(height // tile_size):
+            # Generate base noise
+            base_noise_val = noise.pnoise2(i / octaves, 
+                                           j / octaves, 
+                                           octaves=octaves, 
+                                           persistence=persistence, 
+                                           lacunarity=lacunarity, 
+                                           repeatx=width, 
+                                           repeaty=height, 
+                                           base=0)
+            base_max_height = 10
+            base_noise_val = (base_noise_val + 1) * 0.5 * base_max_height
+            base_noise_val = int(base_noise_val)
+            
+            # Generate second layer of noise for variation
+            variation_noise_val = noise.pnoise2(i / (octaves * 2), 
+                                                j / (octaves * 2), 
+                                                octaves=octaves, 
+                                                persistence=persistence, 
+                                                lacunarity=lacunarity, 
+                                                repeatx=width, 
+                                                repeaty=height, 
+                                                base=0)
+            variation_max_height = 2
+            variation_noise_val = (variation_noise_val + 1) * 0.5 * variation_max_height
+            variation_noise_val = int(variation_noise_val)
+            
+            # Adjust terrain based on second layer of noise
+            if j == base_noise_val:
+                if variation_noise_val == 1:
+                    # Add a peak
+                    tile_rect = pygame.Rect(i * tile_size, (height // tile_size - j - 1) * tile_size, tile_size, tile_size)
+                    column.append(tile_rect)
+                elif variation_noise_val == 0:
+                    # Add a divot
+                    column.append(None)
                 else:
-                    # Use dirt for other layers
-                    tile_image = dirt_image
+                    # Use base noise value
+                    tile_rect = pygame.Rect(i * tile_size, (height // tile_size - j - 1) * tile_size, tile_size, tile_size)
+                    column.append(tile_rect)
+            elif j < base_noise_val:
+                # Use base noise value
+                tile_rect = pygame.Rect(i * tile_size, (height // tile_size - j - 1) * tile_size, tile_size, tile_size)
+                column.append(tile_rect)
+            else:
+                column.append(None)
+        terrain.append(column)
+    return terrain
 
-                tile_rect = pygame.Rect(x * TILE_SIZE,(SCREENHEIGHT - (terrain_height * TILE_SIZE)) + (y * TILE_SIZE),TILE_SIZE, TILE_SIZE)
-                column.append({'image': tile_image, 'rect': tile_rect})
 
 
-            self.terrain_data.append(column)
 
 
-    def draw(self, surface):
-        # Draw terrain tiles to the screen
-        for column in self.terrain_data:
-            for tile in column:
-                surface.blit(tile['image'], tile['rect'])
-                pygame.draw.rect(WIN, RED, tile['rect'])
-               
+def display_fps(surface, clock):
+    font = pygame.font.SysFont('Arial', 20)
+    fps = str(int(clock.get_fps()))
+    fps_text = font.render(fps, 1, pygame.Color("coral"))
+    fps_pos = fps_text.get_rect()
+    fps_pos.topright = surface.get_rect().topright
+    surface.blit(fps_text, fps_pos)
 
-    def get_tile_at_position(self, x, y):
-        # Get the terrain tile at a given position
-        column_index = x // TILE_SIZE
-        row_index = (y - (SCREENHEIGHT - (len(self.terrain_data[column_index]) * TILE_SIZE))) // TILE_SIZE
 
-        if column_index < 0 or column_index >= len(self.terrain_data):
-            return None
 
-        if row_index < 0 or row_index >= len(self.terrain_data[column_index]):
-            return None
 
-        return self.terrain_data[column_index][row_index]
 
+class Enemy:
+    def __init__(self, x, y, name):
+        eimg = pygame.image.load(os.path.join('Assets', 'Enemy', 'Idle', '0.png'))
+        self.image = pygame.transform.scale(eimg, (350, 350))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.name = name
+        self.angle = 0
+        self.rect.y = y
+        self.dx = x
+        self.dy = y
+        self.animation_list = []
+        self.frame_index = 0
+        self.action = 0
+        self.grav = 0
+        self.update_time = pygame.time.get_ticks()
+
+        temp_list = []
+        for i in range(9):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Idle/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+
+        temp_list = []
+        for i in range(6):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Run/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+
+        temp_list = []
+        for i in range(2):
+            img = pygame.image.load(f'Assets/{self.name}/Jump/{i}.png')
+            img = pygame.transform.scale (img,(img.get_width(),img.get_height()))
+            temp_list.append(img)
+        self.animation_list.append(temp_list)
+        self.ismoving = True
+
+
+        # loading  attack images
+        temp_list = []
+        for i in range(6):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Attack1/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+        # hurt images
+        temp_list = []
+        for i in range(4):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Hurt/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+        temp_list = []
+        for i in range(6):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Death/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
+        # adds temp list to master list, creates list of lists, all animations passed through temp list will be added to
+        # the master list
+        self.image = self.animation_list[self.action][self.frame_index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x,y)
+
+    def update(self):
+        animation_cooldown = 100  # milliseconds
+        # handles animation
+        # updates image
+
+        self.image = self.animation_list[self.action][self.frame_index]
+        # if the current time and update time are greater than 100ms then change to the next image in animation
+        if pygame.time.get_ticks() - self.update_time > animation_cooldown:
+            self.update_time = pygame.time.get_ticks()
+            self.frame_index += 1
+
+        # if animation is done, loop to first image
+        if self.frame_index >= len(self.animation_list[self.action]):
+            if self.action == 3:
+                self.frame_index = len(self.animation_list[self.action]) - 1
+            else:
+                self.Idle()
+
+    def Idle(self):
+
+        self.action = 0
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
+    
+    def Run(self):
+        self.action = 1
+        self.frame_index = 0 
+        self.update_time = pygame.time.get_ticks()
+        self.image = self.animation_list[self.action][self.frame_index]
+
+    def Jump(self):
+
+        self.action = 2
+        self.frame_index = 0 
+        self.update_time = pygame.time.get_ticks()
+
+    def Hurt(self):
+        # hurt animation
+        self.action = 3
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
+
+    def Death(self):
+        # hurt animation
+        self.action = 4
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
+
+    def Reset(self):
+        self.alive = True
+        self.action = 0
+        self.update_time = pygame.time.get_ticks()
+
+    def Draw(self):
+        WIN.blit(self.image, self.rect)
+
+
+
+terrain = generate_terrain(SCREENWIDTH, SCREENHEIGHT)
 
 player = Player(200, 150, 'Player')
-terrain = Terrain()
+enemy = Enemy(300, 150, 'Enemy')
+
 
 
 
@@ -298,8 +449,6 @@ def game():
     while run:
         # BG_Menu.play()
         clock.tick(FPS)
-
-
         player.update()
         player.Draw()
 
@@ -309,12 +458,37 @@ def game():
         for i in range(0, tile_height):
             WIN.blit(BG_img, (i * BG_height, 0))
 
-         
         
+        display_fps(WIN, clock)
+         
+        for column in terrain:
+            for tile_rect in column:
+                if tile_rect is not None:
+                    if tile_rect.bottom == SCREENHEIGHT:
+                        WIN.blit(grass_image, tile_rect)
+                    else:
+                        WIN.blit(dirt_image, tile_rect)
+
+        for column in terrain:
+            for tile_rect in column:
+                if tile_rect is not None and player.rect.colliderect(tile_rect):
+                    if player.rect.bottom > tile_rect.top and player.rect.top < tile_rect.top:
+                        player.rect.bottom = tile_rect.top
+                        player.dx = 0
+                    elif player.rect.top < tile_rect.bottom and player.rect.bottom > tile_rect.bottom:
+                        player.rect.top = tile_rect.bottom
+                        player.dy = 0
+                    elif player.rect.right > tile_rect.left and player.rect.left < tile_rect.left:
+                        player.rect.right = tile_rect.left
+                        player.dy = 0
+                    elif player.rect.left < tile_rect.right and player.rect.right > tile_rect.right:
+                        player.rect.left = tile_rect.right
+                        player.dx = 0
+
+                            
+                    # handle collision
+
         player.movement()
-
-        terrain.draw(WIN)
-
         for events in pygame.event.get():
             if events.type == pygame.QUIT:
                 run = False
