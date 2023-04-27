@@ -3,6 +3,7 @@ import os
 import math
 import pygame_menu
 import noise
+import json
 
 
 # TO DO LIST = NEED TO HAVE MENU RESOLUTIONS WORKING, NEED TO HAVE TERRAIN WORKING.
@@ -340,18 +341,9 @@ class Enemy:
         self.animation_list.append(temp_list)
 
 
-        temp_list = []
-        for i in range(2):
-            img = pygame.image.load(f'Assets/{self.name}/Jump/{i}.png')
-            img = pygame.transform.scale (img,(img.get_width(),img.get_height()))
-            temp_list.append(img)
-        self.animation_list.append(temp_list)
-        self.ismoving = True
-
-
         # loading  attack images
         temp_list = []
-        for i in range(6):  # iterates through 8 png for animation
+        for i in range(12):  # iterates through 8 png for animation
             img = pygame.image.load(f'Assets/{self.name}/Attack1/{i}.png')
             img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
             temp_list.append(img)  # adds image to image list
@@ -451,13 +443,15 @@ def game():
         clock.tick(FPS)
         player.update()
         player.Draw()
-
+        
         # blit imgs
         for i in range(0, tile_width):
             WIN.blit(BG_img, (i * BG_width, 0))
         for i in range(0, tile_height):
             WIN.blit(BG_img, (i * BG_height, 0))
 
+        enemy.update()
+        enemy.Draw()
         
         display_fps(WIN, clock)
          
@@ -529,12 +523,6 @@ def set_volume(value):
     pass
     #BG_Menu.set_volume(value//100)
     
-
-
-
-
-# window won't resize if the res chosen first is in the list without scrolling breaks code for some reason?
-
 
 def mainmenu():
     #BG_Menu.play()
