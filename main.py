@@ -236,7 +236,7 @@ class Player:
         WIN.blit(rotated_image, rotated_rect)
     
 
-def generate_terrain(width, height, octaves=3, persistence=0.5, lacunarity=2.0, tile_size=16):
+def generate_terrain(width, height, octaves=10, persistence=0.5, lacunarity=2.0, tile_size=16):
     """ Generate a random terrain using Perlin noise algorithm """
     terrain = []
     for i in range(width // tile_size):
@@ -309,7 +309,7 @@ def display_fps(surface, clock):
 class Enemy:
     def __init__(self, x, y, name):
         eimg = pygame.image.load(os.path.join('Assets', 'Enemy', 'Idle', '0.png'))
-        self.image = pygame.transform.scale(eimg, (350, 350))
+        self.image = pygame.transform.scale(eimg, (400, 350))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.width = self.image.get_width()
@@ -431,8 +431,7 @@ class Enemy:
 terrain = generate_terrain(SCREENWIDTH, SCREENHEIGHT)
 
 player = Player(200, 150, 'Player')
-enemy = Enemy(300, 150, 'Enemy')
-
+enemy = Enemy(500, 150, 'Enemy')
 
 
 
@@ -452,7 +451,7 @@ def game():
 
         enemy.update()
         enemy.Draw()
-        
+    
         display_fps(WIN, clock)
          
         for column in terrain:
