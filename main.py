@@ -44,7 +44,7 @@ pygame.display.set_caption('Óendanlegt')
 #BG_Menu.set_volume(1)
 
 # draw stuff
-BG_img = pygame.image.load(os.path.join('Assets', 'BG.png'))
+BG_img = pygame.image.load(os.path.join('Assets','BG.png'))
 BG_width = BG_img.get_width()
 BG_height = BG_img.get_height()
 
@@ -301,8 +301,6 @@ def display_fps(surface, clock):
     fps_pos = fps_text.get_rect()
     fps_pos.topright = surface.get_rect().topright
     surface.blit(fps_text, fps_pos)
-
-
 
 
 
