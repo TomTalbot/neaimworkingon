@@ -40,11 +40,11 @@ pygame.display.set_caption('Óendanlegt')
 
 
 # Audio loading
-#BG_Menu = pygame.mixer.Sound(os.path.join('Assets', 'Pyre Original Soundtrack - Downside Ballad.mp3'))
-#BG_Menu.set_volume(1)
+BG_Menu = pygame.mixer.Sound(os.path.join('Assets', 'Pyre Original Soundtrack - Downside Ballad.mp3'))
+BG_Menu.set_volume(1)
 
 # draw stuff
-BG_img = pygame.image.load(os.path.join('Assets','BG.png'))
+BG_img = pygame.image.load(os.path.join('Assets', 'BG.png'))
 BG_width = BG_img.get_width()
 BG_height = BG_img.get_height()
 
@@ -90,6 +90,14 @@ class Player:
             temp_list.append(img)  # adds image to image list
         self.animation_list.append(temp_list)
 
+        # loading  attack images
+        temp_list = []
+        for i in range(8):  # iterates through 8 png for animation
+            img = pygame.image.load(f'Assets/{self.name}/Attack1/{i}.png')
+            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
+            temp_list.append(img)  # adds image to image list
+        self.animation_list.append(temp_list)
+
 
         temp_list = []
         for i in range(2):
@@ -100,13 +108,7 @@ class Player:
         self.ismoving = True
 
 
-        # loading  attack images
-        temp_list = []
-        for i in range(6):  # iterates through 8 png for animation
-            img = pygame.image.load(f'Assets/{self.name}/Attack1/{i}.png')
-            img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
-            temp_list.append(img)  # adds image to image list
-        self.animation_list.append(temp_list)
+        
 
         # hurt images
         temp_list = []
@@ -131,14 +133,20 @@ class Player:
 
     def update(self):
         animation_cooldown = 100  # milliseconds
-        # handles animation
-        # updates image
 
-        self.image = self.animation_list[self.action][self.frame_index]
-        # if the current time and update time are greater than 100ms then change to the next image in animation
-        if pygame.time.get_ticks() - self.update_time > animation_cooldown:
-            self.update_time = pygame.time.get_ticks()
-            self.frame_index += 1
+        if self.action < len(self.animation_list):
+            animation = self.animation_list[self.action]
+            if self.frame_index < len(animation):
+                self.image = animation[self.frame_index]
+
+                if pygame.time.get_ticks() - self.update_time > animation_cooldown:
+                    self.update_time = pygame.time.get_ticks()
+                    print(f"Action: {self.action}, Frame Index: {self.frame_index}")
+                    self.frame_index += 1
+
+                    if self.frame_index >= len(animation):
+                        self.frame_index = 0  # Reset the frame index to loop back to the first image
+
 
         # if animation is done, loop to first image
         if self.frame_index >= len(self.animation_list[self.action]):
@@ -147,44 +155,37 @@ class Player:
             else:
                 self.Idle()
 
-    def Idle(self):
 
+    def Idle(self):
         self.action = 0
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
-    
+
     def Run(self):
         self.action = 1
-        self.frame_index = 0 
+        self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
-        self.image = self.animation_list[self.action][self.frame_index]
+          
 
-    def Jump(self):
-
+    def Attack1(self):
         self.action = 2
-        self.frame_index = 0 
+        self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
+
 
     def Hurt(self):
-        # hurt animation
         self.action = 3
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
 
+
     def Death(self):
-        # hurt animation
         self.action = 4
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
 
-    def Reset(self):
-        self.alive = True
-        self.action = 0
-        self.update_time = pygame.time.get_ticks()
-
     def Draw(self):
         WIN.blit(self.image, self.rect)
-
 
     def movement(self):
 
@@ -192,21 +193,29 @@ class Player:
         dy = 0
 
         keys = pygame.key.get_pressed()
+
         if keys[pygame.K_w] or keys[pygame.K_SPACE]:
             if not self.is_jumping:
-                self.Jump()
                 self.grav = -15
                 self.is_jumping = True
         else:
-            self.is_jumping = False  
+            self.is_jumping = False
+        
+        if keys[pygame.K_q]:
+            self.action = 2
 
-        if keys[pygame.K_a]:
-            self.Run()
-            dx -= 5
-        if keys[pygame.K_d]:
-            self.Run()
-            dx += 5
-     
+        elif keys[pygame.K_a]:
+            dx -= 3
+            self.action = 1
+
+        elif keys[pygame.K_d]:
+            dx += 3
+            self.action = 1
+
+        else:
+            self.action = 0
+
+
         self.grav += 1
         if self.grav > 10:
             self.grav = 10
@@ -230,13 +239,22 @@ class Player:
             print(self.rect.bottom)
 
 
+        if keys[pygame.K_a]:
+            rotated_image = pygame.transform.flip(self.image, True, False)
+            rotated_rect = rotated_image.get_rect(center=self.rect.center)
+            WIN.blit(rotated_image, rotated_rect)
+        
+        elif keys[pygame.K_d]:
+            non_flipped = pygame.transform.flip(self.image, False, False)
+            non_flipped_rect = non_flipped.get_rect(center =  self.rect.center)           
+            WIN.blit(non_flipped, non_flipped_rect)
 
-        rotated_image = pygame.transform.rotate(self.image, self.angle)
-        rotated_rect = rotated_image.get_rect(center=self.rect.center)
-        WIN.blit(rotated_image, rotated_rect)
-    
+        else:
+            self.action = 0
+            WIN.blit(self.image, self.rect)
+               
 
-def generate_terrain(width, height, octaves=10, persistence=0.5, lacunarity=2.0, tile_size=16):
+def generate_terrain(width, height, octaves=10, persistence=0.5, lacunarity=2, tile_size=16):
     """ Generate a random terrain using Perlin noise algorithm """
     terrain = []
     for i in range(width // tile_size):
@@ -307,24 +325,22 @@ def display_fps(surface, clock):
 class Enemy:
     def __init__(self, x, y, name):
         eimg = pygame.image.load(os.path.join('Assets', 'Enemy', 'Idle', '0.png'))
-        self.image = pygame.transform.scale(eimg, (400, 350))
+        self.image = pygame.transform.scale(eimg, (50, 100))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.name = name
-        self.angle = 0
+        self.direction = 1
         self.rect.y = y
         self.dx = x
-        self.dy = y
         self.animation_list = []
         self.frame_index = 0
         self.action = 0
-        self.grav = 0
         self.update_time = pygame.time.get_ticks()
 
         temp_list = []
-        for i in range(9):  # iterates through 8 png for animation
+        for i in range(4):  # iterates through 8 png for animation
             img = pygame.image.load(f'Assets/{self.name}/Idle/{i}.png')
             img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
             temp_list.append(img)  # adds image to image list
@@ -332,7 +348,7 @@ class Enemy:
 
 
         temp_list = []
-        for i in range(6):  # iterates through 8 png for animation
+        for i in range(8):  # iterates through 8 png for animation
             img = pygame.image.load(f'Assets/{self.name}/Run/{i}.png')
             img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
             temp_list.append(img)  # adds image to image list
@@ -341,7 +357,7 @@ class Enemy:
 
         # loading  attack images
         temp_list = []
-        for i in range(12):  # iterates through 8 png for animation
+        for i in range(4):  # iterates through 8 png for animation
             img = pygame.image.load(f'Assets/{self.name}/Attack1/{i}.png')
             img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
             temp_list.append(img)  # adds image to image list
@@ -349,7 +365,7 @@ class Enemy:
 
         # hurt images
         temp_list = []
-        for i in range(4):  # iterates through 8 png for animation
+        for i in range(3):  # iterates through 8 png for animation
             img = pygame.image.load(f'Assets/{self.name}/Hurt/{i}.png')
             img = pygame.transform.scale(img, (img.get_width(), img.get_height()))
             temp_list.append(img)  # adds image to image list
@@ -370,14 +386,19 @@ class Enemy:
 
     def update(self):
         animation_cooldown = 100  # milliseconds
-        # handles animation
-        # updates image
 
-        self.image = self.animation_list[self.action][self.frame_index]
-        # if the current time and update time are greater than 100ms then change to the next image in animation
-        if pygame.time.get_ticks() - self.update_time > animation_cooldown:
-            self.update_time = pygame.time.get_ticks()
-            self.frame_index += 1
+        if self.action < len(self.animation_list):
+            animation = self.animation_list[self.action]
+            if self.frame_index < len(animation):
+                self.image = animation[self.frame_index]
+
+                if pygame.time.get_ticks() - self.update_time > animation_cooldown:
+                    self.update_time = pygame.time.get_ticks()
+                    self.frame_index += 1
+
+                    if self.frame_index >= len(animation):
+                        self.frame_index = 0  # Reset the frame index to loop back to the first image
+
 
         # if animation is done, loop to first image
         if self.frame_index >= len(self.animation_list[self.action]):
@@ -386,23 +407,22 @@ class Enemy:
             else:
                 self.Idle()
 
-    def Idle(self):
 
+    def Idle(self):
         self.action = 0
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
-    
+        
     def Run(self):
         self.action = 1
         self.frame_index = 0 
         self.update_time = pygame.time.get_ticks()
-        self.image = self.animation_list[self.action][self.frame_index]
-
-    def Jump(self):
-
+        
+    def Attack1(self):
         self.action = 2
         self.frame_index = 0 
         self.update_time = pygame.time.get_ticks()
+
 
     def Hurt(self):
         # hurt animation
@@ -422,25 +442,72 @@ class Enemy:
         self.update_time = pygame.time.get_ticks()
 
     def Draw(self):
-        WIN.blit(self.image, self.rect)
+       
+        if self.direction == -1:
+            rotated_img = pygame.transform.flip(self.image, True, False)
+            WIN.blit(rotated_img, self.rect)
+        else:
+            WIN.blit(self.image, self.rect)
 
+
+    def movement(self):
+        # set the walking time to 3 seconds (1 second for each direction with a 0.5 second pause)
+        walking_time = 3000  # milliseconds
+        # set the walking speed to 5 pixels per frame
+        walking_speed = 1
+
+        dx = 0 
+        
+        # calculate the distance to move
+        distance = walking_speed * 1
+
+        # determine the current time within the walking time
+        current_time = pygame.time.get_ticks() % walking_time
+
+        # move for 1 second to the right
+        if current_time < 1000:
+            self.direction = 1
+            self.action = 1
+            # move right
+            self.rect.x += distance
+            dx += 5
+
+        # pause for 0.5 seconds after moving right
+        elif current_time < 1500:
+            self.action = 0
+            pass  # do nothing
+
+        # move for 1 second to the left
+        elif current_time < 2500:
+            self.direction = -1
+            self.action = 1
+            # move left
+            self.rect.x -= distance
+            
+        # pause for 0.5 seconds after moving left
+        else:
+            self.action = 0
+            pass  # do nothing
+
+        # update the player's image and animation
+        self.update()
 
 
 terrain = generate_terrain(SCREENWIDTH, SCREENHEIGHT)
 
 player = Player(200, 150, 'Player')
-enemy = Enemy(500, 150, 'Enemy')
-
+enemy = Enemy(690, 275, 'Enemy')
 
 
 def game():
     run = True
     while run:
-        # BG_Menu.play()
+        BG_Menu.play()
         clock.tick(FPS)
         player.update()
         player.Draw()
-        
+    
+            
         # blit imgs
         for i in range(0, tile_width):
             WIN.blit(BG_img, (i * BG_width, 0))
@@ -449,7 +516,9 @@ def game():
 
         enemy.update()
         enemy.Draw()
-    
+        enemy.movement()
+
+        
         display_fps(WIN, clock)
          
         for column in terrain:
@@ -475,9 +544,15 @@ def game():
                     elif player.rect.left < tile_rect.right and player.rect.right > tile_rect.right:
                         player.rect.left = tile_rect.right
                         player.dx = 0
+                
 
-                            
-                    # handle collision
+        if player.rect.left < 0:
+            player.rect.left = 0
+
+        if player.rect.top < 0:
+            player.rect.top = 0 
+
+                    
 
         player.movement()
         for events in pygame.event.get():
@@ -490,20 +565,10 @@ def game():
     pygame.quit()
 
 
-
-# menu shit
-
-
-
-
-
-
-# menu shit
-
-
 def settings():
     settings = pygame_menu.Menu('Settings', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
     settings.add.button('Audio', audio)
+    settings.add.button('Keybinds', keybinds) 
     settings.add.button('Back', mainmenu)
     settings.mainloop(WIN)
 
@@ -517,9 +582,32 @@ def audio():
 
 
 def set_volume(value):
-    pass
-    #BG_Menu.set_volume(value//100)
-    
+    BG_Menu.set_volume(value//100)
+
+
+def keybinds():
+    keybind_menu = pygame_menu.Menu('Keybinds', 1000, 406, theme=pygame_menu.themes.THEME_DARK)
+    keybind_menu.add.text_input('Move Up:', default='W', onchange=save_keybinds)
+    keybind_menu.add.text_input('Move Down:', default='S', onchange=save_keybinds)
+    keybind_menu.add.text_input('Move Left:', default='A', onchange=save_keybinds)
+    keybind_menu.add.text_input('Move Right:', default='D', onchange=save_keybinds)
+    keybind_menu.add.button('Apply', save_keybinds)
+    keybind_menu.add.button('Back', settings)
+    keybind_menu.mainloop(WIN)
+
+def save_keybinds(value):
+    if len(value) >= 3:
+        keybinds = {
+            'move_up': value[0],
+            'move_down': value[1],
+            'move_left': value[2],
+            'move_right': value[3] if len(value) >= 4 else None
+        }
+        with open('keybinds.json', 'w') as file:
+            json.dump(keybinds, file)
+
+
+
 
 def mainmenu():
     #BG_Menu.play()
@@ -538,13 +626,6 @@ if __name__ == '__main__':
 '''
 ideas for settings:
 JSON file to save settings
-allow user to change theme for menu in video settings
-allow user to change window size from presets <- potentially scrapped?
-allow user to change audio settings <- need to have the main 
-
-for enemy generation -> grab all x and y pos of all tiles in terrain append them to a list then have enemy spawn if the
-random coords assigned are not in the list.
-
 
 have enemy damage taken be outputted on y axis and then disappear
 
